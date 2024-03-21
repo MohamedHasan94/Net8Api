@@ -19,15 +19,15 @@ namespace api.Mappers
                 Purchase = stockModel.Purchase,
                 LastDiv = stockModel.LastDiv,
                 Industry = stockModel.Industry,
-                MarketCap = stockModel.MarketCap
+                MarketCap = stockModel.MarketCap,
+                Comments = stockModel.Comments.Select(c => c.ToCommentDto()).ToList()
             };
         }
 
         public static Stock CreateDtoToStock(this CreateStockDto createStockDto)
         {
             return new Stock
-            {
-                
+            {                
                 Symbol = createStockDto.Symbol,
                 CompanyName = createStockDto.CompanyName,
                 Purchase = createStockDto.Purchase,

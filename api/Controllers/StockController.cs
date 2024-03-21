@@ -7,6 +7,7 @@ using api.Core;
 using api.Core.Managers;
 using api.Data;
 using api.Dtos.Stock;
+using api.Helpers;
 using api.Mappers;
 using api.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -26,14 +27,34 @@ namespace api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] QueryObject query)
         {
-            // var stocks = await _dbContext.Stocks.Select(s => s.ToStockDto()).ToListAsync();
-            var stocks = await _unitOfWork.StockManager.GetAll().Select(s => s.ToStockDto()).ToListAsync();
-            return Ok(stocks);
+            var stocks = _unitOfWork.StockManager.GetAll();
+            if (!string.IsNullOrEmpty(query.Symbol))
+            {
+                stocks = stocks.Where(s => s.Symbol.ToLower().Contains(query.Symbol.ToLower()));
+            }
+            if (!string.IsNullOrEmpty(query.CompanyName))
+            {
+                stocks = stocks.Where(s => s.CompanyName.ToLower().Contains(query.CompanyName.ToLower()));
+            }
+            if (!string.IsNullOrEmpty(query.SortBy))
+            {
+                if (query.SortBy.Equals("symbol", StringComparison.OrdinalIgnoreCase))
+                {
+                    stocks = query.IsDecsending ? stocks.OrderByDescending(s => s.Symbol) : stocks.OrderBy(s => s.Symbol);
+                }
+                else if (query.SortBy.Equals("CompanyName", StringComparison.OrdinalIgnoreCase))
+                {
+                    stocks = query.IsDecsending ? stocks.OrderByDescending(s => s.CompanyName) : stocks.OrderBy( s => s.CompanyName);
+                }
+            }
+            PaginatedList<StockDto> stocks1 = PaginatedList<StockDto>.Create(stocks.Select(s => s.ToStockDto()), query.PageIndex, query.PageSize);
+            // var stocksList = await stocks.Select(s => s.ToStockDto()).ToListAsync();
+            return Ok(stocks1);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
             // var stock = await _dbContext.Stocks.FindAsync(id);
@@ -45,6 +66,7 @@ namespace api.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateStockDto stockDto)
         {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
             var stock = stockDto.CreateDtoToStock();
             await _unitOfWork.StockManager.CreateAsync(stock);
             // await _dbContext.Stocks.AddAsync(stock);
@@ -53,36 +75,25 @@ namespace api.Controllers
         }
 
         [HttpPut]
-        [Route("{id}")]
+        [Route("{id:int}")]
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] CreateStockDto updatedStock)
         {
-            // var stock = await _dbContext.Stocks.FindAsync(id);
-            var stock = await _unitOfWork.StockManager.GetByIdAsync(id);
-            if (stock != null)
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if(await _unitOfWork.StockManager.UpdateAsync(updatedStock.CreateDtoToStock()))
             {
-                stock.Symbol = updatedStock.Symbol;
-                stock.CompanyName = updatedStock.CompanyName;
-                stock.Purchase = updatedStock.Purchase;
-                stock.LastDiv = updatedStock.LastDiv;
-                stock.Industry = updatedStock.Industry;
-                stock.MarketCap = updatedStock.MarketCap;
-                await _unitOfWork.StockManager.UpdateAsync(stock);
-                // await _dbContext.SaveChangesAsync();
-                return Ok(stock.ToStockDto());
+                return CreatedAtAction(nameof(Update), new {Id = id}, updatedStock.CreateDtoToStock());
             }
-            return NotFound();
+            
+            return BadRequest("Update failed : please review stock data");
         }
 
         [HttpDelete]
-        [Route("{id}")]
+        [Route("{id:int}")]
         public async Task<IActionResult> Delete([FromRoute]int id)
         {
-            // var stock = await _dbContext.Stocks.FindAsync(id);
             var stock = await _unitOfWork.StockManager.GetByIdAsync(id);
             if (stock != null)
             {
-                // _dbContext.Stocks.Remove(stock);
-                // await _dbContext.SaveChangesAsync();
                 await _unitOfWork.StockManager.DeleteAsync(stock);
                 return NoContent();
             }

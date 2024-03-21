@@ -44,13 +44,13 @@ namespace api.Core
             return await _entities.FindAsync(id);
         }
 
-        public async Task<TEntity?> CreateAsync(TEntity entity)
+        public virtual async Task<TEntity?> CreateAsync(TEntity entity)
         {
             await _entities.AddAsync(entity);
             return await _context.SaveChangesAsync() > 0 ? entity : null;
         }
 
-        public async Task<bool> DeleteAsync(TEntity entity)
+        public virtual async Task<bool> DeleteAsync(TEntity entity)
         {
             if(!_entities.Contains(entity)) return false;
 
@@ -58,7 +58,7 @@ namespace api.Core
             return await _context.SaveChangesAsync() > 0;
         }
 
-        public async Task<bool> DeleteByIdAsync(object[] id)
+        public virtual async Task<bool> DeleteByIdAsync(object[] id)
         {
             TEntity? entity = await _entities.FindAsync(id);
             if(entity == null) return false;
@@ -66,11 +66,16 @@ namespace api.Core
             return await _context.SaveChangesAsync() > 0;
         }
 
-        public async Task<bool> UpdateAsync(TEntity entity)
+        public virtual async Task<bool> UpdateAsync(TEntity entity)
         {
             if(!_entities.Contains(entity)) return false;
             _entities.Update(entity);
             return await _context.SaveChangesAsync() > 0;
+        }
+
+        public virtual Task<bool> Exists(params object[] id)
+        {
+            throw new NotImplementedException();
         }
     }
 }

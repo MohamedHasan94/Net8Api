@@ -22,5 +22,7 @@ namespace api.Core
         Task<bool> DeleteAsync(TEntity entity);
 
         Task<bool> DeleteByIdAsync(object[] id);
+
+        Task<bool> Exists(object[] id);
      }
 }

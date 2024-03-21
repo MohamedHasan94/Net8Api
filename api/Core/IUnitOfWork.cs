@@ -9,5 +9,6 @@ namespace api.Core
     public interface IUnitOfWork
     {
         StockManager StockManager { get; }
+        CommentManager CommentManager { get; }
     }
 }
